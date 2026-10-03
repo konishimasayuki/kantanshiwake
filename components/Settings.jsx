@@ -111,7 +111,7 @@ export default function Settings({ data, update, notify, logout }) {
 
       <details className="set">
         <summary>アカウント</summary>
-        <div className="inner"><PasswordForm notify={notify} /><p style={{ marginTop: 16 }}><button className="btn" onClick={logout}>ログアウト（{data.uid}）</button></p></div>
+        <div className="inner">{data.role === "demo" ? <p className="note" style={{ marginTop: 0 }}>デモアカウントのため、パスワードは変更できません。</p> : <PasswordForm notify={notify} />}<p style={{ marginTop: 16 }}><button className="btn" onClick={logout}>ログアウト（{data.uid}）</button></p></div>
       </details>
 
       <details className="set">

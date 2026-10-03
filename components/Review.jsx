@@ -73,6 +73,7 @@ export default function Review({ data, update, notify, go }) {
                 <button className="iconbtn" style={{ color: "var(--shu)" }} onClick={() => remove(j.id)}>削除</button>
               </div>
             </div>
+            {j.note && <div className="slip-note">{j.note}</div>}
             {warn.length > 0 && <div className="warn">{warn.map((w) => <div key={w}>{w}</div>)}</div>}
             {isOpen && (
               <div className="more">

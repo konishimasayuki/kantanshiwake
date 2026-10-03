@@ -2,7 +2,8 @@
 import { useState } from "react";
 import AccountSelect from "./AccountSelect";
 import { parseZengin, classify, demoZenginCSV } from "@/lib/zengin";
-import { makeJournal, todayISO, yen } from "@/lib/journal";
+import { makeJournal, todayISO, yen, uid } from "@/lib/journal";
+import { receiptToJournals, passbookToJournals, shrinkImage } from "@/lib/photo";
 
 const MODES = [["bank", "全銀CSV", "入出金明細"], ["manual", "手入力", "出先でメモ"], ["photo", "写メ", "レシート・通帳"], ["card", "クレカ明細", "カード会社CSV"]];
 const QUICK = [
@@ -14,7 +15,7 @@ const QUICK = [
   { label: "電車・タクシー代", dr: "旅費交通費", cr: "現金" },
 ];
 
-export default function ImportPanel({ data, update, notify, go }) {
+export default function ImportPanel({ data, update, notify, go, ai, setAi }) {
   const [mode, setMode] = useState("bank");
   return (
     <section>
@@ -27,9 +28,73 @@ export default function ImportPanel({ data, update, notify, go }) {
       </div>
       {mode === "bank" && <BankImport data={data} update={update} notify={notify} go={go} />}
       {mode === "manual" && <ManualInput data={data} update={update} notify={notify} />}
-      {mode === "photo" && <Soon title="写メ読み取り（準備中）" text="レシート・通帳の写真をOCRで読み取り、日付・金額・税率・登録番号から仕訳を作ります。読み取りパターンを整備中です。" />}
+      {mode === "photo" && <PhotoImport data={data} update={update} ai={ai} setAi={setAi} />}
       {mode === "card" && <Soon title="クレカ明細（準備中）" text="楽天・三井住友・JCB・アメックスのCSVから順に対応します。貸方は未払金で仕訳します。" />}
     </section>
+  );
+}
+
+function PhotoImport({ data, update, ai, setAi }) {
+  const s = data.settings;
+  const [kind, setKind] = useState("receipt");
+  const [items, setItems] = useState([]);
+  const left = Math.max(0, ai.limit - ai.used);
+  const usable = ai.enabled && left > 0;
+
+  async function onFiles(e) {
+    const files = [...e.target.files]; e.target.value = "";
+    for (const f of files) await readOne(f);
+  }
+  async function readOne(file) {
+    const id = uid(), url = URL.createObjectURL(file);
+    setItems((x) => [{ id, url, name: file.name || "写真", st: "読み取り中…", cls: "" }, ...x]);
+    const setSt = (st, cls) => setItems((x) => x.map((i) => (i.id === id ? { ...i, st, cls } : i)));
+    try {
+      const img = await shrinkImage(file);
+      const res = await fetch("/api/ai/read", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind, image: img.data, mediaType: img.type, accounts: s.accounts.filter((a) => a.kind === "費用").map((a) => a.name) }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (d.used !== undefined) setAi((a) => ({ ...a, used: d.used, limit: d.limit }));
+      if (!res.ok) { setSt(d.error || "読み取りに失敗しました", "ng"); return; }
+      if (d.result?.error) { setSt(d.result.error, "ng"); return; }
+      const made = kind === "receipt" ? receiptToJournals(s, d.result) : passbookToJournals(s, d.result);
+      if (!made.length) { setSt("金額が読み取れませんでした", "ng"); return; }
+      update((dd) => ({ ...dd, journals: [...dd.journals, ...made] }));
+      const flagged = made.filter((j) => j.flag).length;
+      setSt(`${made.length}件追加・¥${yen(made.reduce((t, j) => t + j.amount, 0))}${flagged ? `（要確認${flagged}件）` : ""}`, "ok");
+    } catch {
+      setSt("画像を読み込めませんでした（JPEG・PNGで撮影してください）", "ng");
+    }
+  }
+
+  return (
+    <div className="panel">
+      <h3>写メを読み取る</h3>
+      <div className="chips">
+        <button className="chip" aria-pressed={kind === "receipt"} onClick={() => setKind("receipt")}>レシート・領収書</button>
+        <button className="chip" aria-pressed={kind === "passbook"} onClick={() => setKind("passbook")}>通帳</button>
+      </div>
+      <label className="drop" style={usable ? undefined : { opacity: 0.5, cursor: "not-allowed" }}>
+        <input type="file" accept="image/*" capture="environment" multiple disabled={!usable} onChange={onFiles} />
+        <strong>撮影する / 写真を選ぶ</strong>
+        <small>{kind === "receipt" ? "日付・金額・税率・店名・登録番号を読み取り、経費の仕訳にします。8%と10%は分けて仕訳します" : "記帳ページ1枚ずつ。日付・摘要・金額を読み取り、ルールで科目を判定します。残高のつながりもチェックします"}</small>
+      </label>
+      {kind === "receipt" && (
+        <div className="row2" style={{ marginTop: 12 }}>
+          <label className="field"><span>現金払いの貸方科目</span><AccountSelect accounts={s.accounts} value={s.receipt.cash} onChange={(v) => update((d) => ({ ...d, settings: { ...d.settings, receipt: { ...d.settings.receipt, cash: v } } }))} /></label>
+          <label className="field"><span>カード・電子マネー払いの貸方科目</span><AccountSelect accounts={s.accounts} value={s.receipt.card} onChange={(v) => update((d) => ({ ...d, settings: { ...d.settings, receipt: { ...d.settings.receipt, card: v } } }))} /></label>
+        </div>
+      )}
+      <div className="quota">
+        <span>{ai.enabled ? <>今月の読み取り <b className="num">{ai.used}</b> / {ai.limit} 枚</> : "写メの読み取りは現在使えません（管理者の設定待ち）"}</span>
+        {ai.enabled && left === 0 && <span style={{ color: "var(--shu)" }}>今月の上限に達しました</span>}
+      </div>
+      <ul className="status-list">
+        {items.map((i) => <li key={i.id}><img alt="" src={i.url} /><span>{i.name}</span><span className={`st ${i.cls}`}>{i.st}</span></li>)}
+      </ul>
+    </div>
   );
 }
 

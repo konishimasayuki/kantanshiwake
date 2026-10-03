@@ -13,6 +13,7 @@ export default function App() {
   const [tab, setTab] = useState("import");
   const [saveState, setSaveState] = useState("saved");
   const [toast, setToast] = useState("");
+  const [ai, setAi] = useState({ enabled: false, used: 0, limit: 0 });
   const timer = useRef(null), toastTimer = useRef(null), pending = useRef(null);
 
   useEffect(() => {
@@ -21,7 +22,8 @@ export default function App() {
       const d = await r.json();
       const settings = { ...makeDefaultSettings(), ...(d.settings || {}) };
       const journals = d.journals || [];
-      setData({ uid: d.uid, settings, journals });
+      setData({ uid: d.uid, role: d.role, settings, journals });
+      if (d.ai) setAi(d.ai);
       if (journals.length) setTab("review");
     }).catch(() => setSaveState("error"));
   }, []);
@@ -63,6 +65,7 @@ export default function App() {
           <div className="hanko" aria-hidden="true">仕</div>
           <span className="name">簡単仕訳屋さん</span>
           <span className="spacer" />
+          {data.role === "superadmin" && <a className="btn small" href="/admin">管理</a>}
           <span className={`save${saveState === "error" ? " ng" : ""}`}>{saveState === "saving" ? "保存中…" : saveState === "error" ? "未保存" : "保存済み"}</span>
           <select aria-label="出力先の会計ソフト" value={data.settings.target} style={{ width: "auto", minHeight: 34, fontSize: 13, padding: "4px 8px" }}
             onChange={(e) => update((d) => ({ ...d, settings: { ...d.settings, target: e.target.value } }))}>
@@ -79,7 +82,7 @@ export default function App() {
         </nav>
       </header>
       <main>
-        {tab === "import" && <ImportPanel {...common} />}
+        {tab === "import" && <ImportPanel {...common} ai={ai} setAi={setAi} />}
         {tab === "review" && <Review {...common} />}
         {tab === "export" && <ExportPanel {...common} />}
         {tab === "settings" && <Settings {...common} logout={logout} />}

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { redis, K } from "@/lib/redis";
+import { SEEDS } from "@/lib/auth";
 import { COOKIE, createToken, cookieOptions } from "@/lib/session";
 
 export const runtime = "nodejs";
@@ -17,12 +18,17 @@ export async function POST(req) {
 
   let user = await r.get(K.user(uid));
 
-  // 最初の管理ユーザーを自動作成（環境変数、未設定なら z / z）
-  const initId = process.env.INITIAL_USER_ID || "z";
-  const initPw = process.env.INITIAL_USER_PASSWORD || "z";
-  if (!user && uid === initId && password === initPw) {
-    user = { id: uid, hash: await bcrypt.hash(initPw, 10), createdAt: Date.now() };
+  // スーパー管理者・デモは、まだなければ最初のログインで作る
+  const seed = SEEDS.find((s) => s.id === uid);
+  if (!user && seed && password === seed.password) {
+    user = { id: uid, hash: await bcrypt.hash(seed.password, 10), role: seed.role, createdAt: Date.now() };
     await r.set(K.user(uid), user);
+    await r.sadd(K.users, uid);
+  } else if (user && seed && !user.role) {
+    // 以前のバージョンで作られたアカウントに役割を付ける
+    user = { ...user, role: seed.role };
+    await r.set(K.user(uid), user);
+    await r.sadd(K.users, uid);
   }
 
   const ok = user && (await bcrypt.compare(String(password), user.hash));
@@ -31,6 +37,8 @@ export async function POST(req) {
     await r.expire(K.fail(uid), LOCK_SEC);
     return NextResponse.json({ error: "IDまたはパスワードが違います" }, { status: 401 });
   }
+  if (user.disabled) return NextResponse.json({ error: "このアカウントは停止されています。管理者にお問い合わせください" }, { status: 403 });
+
   await r.del(K.fail(uid));
   const res = NextResponse.json({ ok: true });
   res.cookies.set(COOKIE, await createToken(uid), cookieOptions());

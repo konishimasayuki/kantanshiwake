@@ -122,3 +122,17 @@ details.set[open] summary::after{content:"－"}
 details.set .inner{padding:0 16px 16px}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:6px;font-size:14px;z-index:20;max-width:90vw}
 .loading{min-height:60vh;display:grid;place-items:center;color:var(--muted)}
+.status-list{list-style:none;margin:12px 0 0;padding:0}
+.status-list li{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--rule);font-size:14px}
+.status-list img{width:44px;height:44px;object-fit:cover;border-radius:4px;border:1px solid var(--rule);flex:none}
+.status-list .st{margin-left:auto;font-size:12px;color:var(--muted);text-align:right}
+.status-list .st.ng{color:var(--shu)}
+.status-list .st.ok{color:var(--ledger)}
+.quota{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);margin:10px 0 0}
+.quota b{color:var(--ink)}
+.slip-note{font-size:12px;color:var(--muted);padding:0 12px 10px}
+.role{font-size:11px;border-radius:10px;padding:1px 8px;background:var(--ledger-soft);color:var(--ledger);white-space:nowrap}
+.role.superadmin{background:var(--shu-soft);color:var(--shu)}
+.adm-table td,.adm-table th{white-space:nowrap}
+.adm-table .acts{display:flex;gap:4px;flex-wrap:wrap}
+.toggle{display:flex;gap:8px;align-items:center;font-size:14px;margin-bottom:12px}
