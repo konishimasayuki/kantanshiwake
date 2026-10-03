@@ -7,6 +7,14 @@ import { COOKIE, createToken, cookieOptions } from "@/lib/session";
 export const runtime = "nodejs";
 
 export async function POST(req) {
+  try {
+    return await register(req);
+  } catch (e) {
+    return NextResponse.json({ error: `サーバーの設定エラー：${e.message}` }, { status: 500 });
+  }
+}
+
+async function register(req) {
   const cfg = await getConfig();
   if (!cfg.allowRegistration) return NextResponse.json({ error: "現在、新規登録は受け付けていません" }, { status: 403 });
   const { id, password } = await req.json().catch(() => ({}));

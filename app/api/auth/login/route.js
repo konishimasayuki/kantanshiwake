@@ -8,6 +8,14 @@ export const runtime = "nodejs";
 const MAX_FAIL = 10, LOCK_SEC = 15 * 60;
 
 export async function POST(req) {
+  try {
+    return await login(req);
+  } catch (e) {
+    return NextResponse.json({ error: `サーバーの設定エラー：${e.message}` }, { status: 500 });
+  }
+}
+
+async function login(req) {
   const { id, password } = await req.json().catch(() => ({}));
   const uid = String(id || "").trim();
   if (!uid || !password) return NextResponse.json({ error: "IDとパスワードを入れてください" }, { status: 400 });
