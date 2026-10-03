@@ -67,7 +67,7 @@ export default function App() {
           <span className="spacer" />
           {data.role === "superadmin" && <a className="btn small" href="/admin">管理</a>}
           <span className={`save${saveState === "error" ? " ng" : ""}`}>{saveState === "saving" ? "保存中…" : saveState === "error" ? "未保存" : "保存済み"}</span>
-          <select aria-label="出力先の会計ソフト" value={data.settings.target} style={{ width: "auto", minHeight: 34, fontSize: 13, padding: "4px 8px" }}
+          <select className="target-sel" aria-label="出力先の会計ソフト" value={data.settings.target} style={{ width: "auto", minHeight: 34, fontSize: 13, padding: "4px 8px" }}
             onChange={(e) => update((d) => ({ ...d, settings: { ...d.settings, target: e.target.value } }))}>
             {TARGETS.map((t) => <option key={t.id} value={t.id} disabled={!t.ready}>{t.name}{t.ready ? "" : "（準備中）"}</option>)}
           </select>
@@ -75,7 +75,7 @@ export default function App() {
         <nav className="steps" aria-label="作業の流れ">
           {TABS.map(([k, n, label]) => (
             <button key={k} aria-current={tab === k ? "page" : undefined} onClick={() => setTab(k)}>
-              <span className="n">{n}</span>{label}{k === "review" && flags > 0 && <span className="badge">{flags}</span>}
+              <span className="n">{n}</span><span className="lb">{label}</span>{k === "review" && flags > 0 && <span className="badge">{flags}</span>}
             </button>
           ))}
           <button aria-current={tab === "settings" ? "page" : undefined} onClick={() => setTab("settings")}>設定</button>

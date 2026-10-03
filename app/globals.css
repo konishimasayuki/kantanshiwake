@@ -147,3 +147,24 @@ nav.steps button{white-space:nowrap}
   nav.steps button{font-size:13px;gap:4px;padding:6px 4px}
   nav.steps button .n{width:18px;height:18px;font-size:11px}
 }
+
+/* ---- スマホ表示の調整 ---- */
+.row2>*,.row3>*{min-width:0}
+.row2,.row3{align-items:end}
+input[type=date]{-webkit-appearance:none;appearance:none;min-width:0;display:block;text-align:left}
+input[type=date]::-webkit-date-and-time-value{text-align:left}
+select{min-width:0;text-overflow:ellipsis}
+@media (max-width:600px){
+  .target-sel{display:none}
+  nav.steps button .lb{overflow:hidden;text-overflow:ellipsis}
+  /* 表はカード型に組み替える（1行目：名前、2行目：選択肢と削除） */
+  .tbl thead{display:none}
+  .tbl,.tbl tbody{display:block}
+  .tbl tr{display:grid;grid-template-columns:1fr 1fr auto;gap:6px;padding:10px 0;border-bottom:1px solid var(--rule)}
+  .tbl tr:last-child{border-bottom:0}
+  .tbl td{padding:0;min-width:0}
+  .tbl td:first-child{grid-column:1 / -1}
+  .tbl td select,.tbl td input{width:100%}
+  .adm-table tr{grid-template-columns:1fr 1fr}
+  .adm-table td{white-space:normal}
+}
