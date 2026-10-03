@@ -11,4 +11,4 @@ export async function middleware(req) {
   return NextResponse.redirect(new URL("/login", req.url));
 }
 
-export const config = { matcher: ["/", "/admin", "/api/data/:path*", "/api/auth/password", "/api/admin/:path*", "/api/ai/:path*"] };
+export const config = { matcher: ["/", "/admin", "/api/data/:path*", "/api/auth/password", "/api/admin/:path*", "/api/ai/:path*", "/api/glasses/:path*"] };

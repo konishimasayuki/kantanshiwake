@@ -3,7 +3,7 @@ import { useState } from "react";
 import AccountSelect, { TaxSelect } from "./AccountSelect";
 import { accOf, taxOf, yen } from "@/lib/journal";
 
-const SRC = { photo: "写メ", bank: "全銀", manual: "手入力", card: "クレカ" };
+const SRC = { photo: "写メ", bank: "全銀", manual: "手入力", card: "クレカ", rokid: "Rokid" };
 
 export default function Review({ data, update, notify, go }) {
   const [filter, setFilter] = useState("all");
@@ -29,7 +29,7 @@ export default function Review({ data, update, notify, go }) {
     </section>
   );
 
-  const F = [["all", "すべて", js.length], ["flag", "要確認", count((j) => j.flag)], ["bank", "全銀", count((j) => j.src === "bank")], ["manual", "手入力", count((j) => j.src === "manual")], ["photo", "写メ", count((j) => j.src === "photo")]];
+  const F = [["all", "すべて", js.length], ["flag", "要確認", count((j) => j.flag)], ["bank", "全銀", count((j) => j.src === "bank")], ["manual", "手入力", count((j) => j.src === "manual")], ["photo", "写メ", count((j) => j.src === "photo")], ["rokid", "Rokid", count((j) => j.src === "rokid")]];
   const list = js.filter((j) => filter === "all" || (filter === "flag" ? j.flag : j.src === filter)).sort((a, b) => a.date.localeCompare(b.date));
   const total = list.reduce((t, j) => t + (Number(j.amount) || 0), 0);
   const flags = count((j) => j.flag);

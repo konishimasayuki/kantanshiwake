@@ -10,6 +10,16 @@
 - 管理画面（/admin、スーパー管理者のみ）：アカウントの作成・停止・削除・パスワード再設定・データ初期化・月間上限、Claude APIキーとモデル、上限の既定値、新規登録の受付、今月のAPI利用と費用の目安
 - 保存先：Upstash Redis（ユーザーごとに設定と仕訳を保存）
 
+## Rokidグラス取り込み
+
+Rokid Glasses（スマートグラス）で撮ったレシートを、そのまま仕訳にして保存するモードです。
+
+- 流れ：グラスで撮影 → スマホの「Rokid取り込み」アプリ（Android）が画像を送る → `POST /api/glasses/receipt` で読み取り・仕訳変換・保存 → 結果（科目・金額）をグラスのレンズに表示
+- 認証：Webと同じID・パスワード。アプリは `/api/auth/login` でログインし、返ってきたセッションCookieを付けて送ります
+- `GET /api/glasses/receipt`：接続テスト（ログイン状態と今月の読み取り枚数）
+- 取り込んだ仕訳は出どころが「Rokid」になり、「取り込み → Rokid」画面と「確認・訂正」に並びます。Rokid画面を開いている間は数秒ごとに自動で読み直します
+- 読み取り枚数の上限は写メと共通です
+
 ## 使っている技術
 
 Next.js 14（App Router）／Vercel／Upstash Redis／jose（ログインのセッション）／bcryptjs／encoding-japanese（Shift-JIS変換）

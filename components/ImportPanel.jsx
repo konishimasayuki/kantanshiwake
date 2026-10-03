@@ -1,11 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AccountSelect from "./AccountSelect";
 import { parseZengin, classify, demoZenginCSV } from "@/lib/zengin";
 import { makeJournal, todayISO, yen, uid } from "@/lib/journal";
 import { receiptToJournals, passbookToJournals, shrinkImage } from "@/lib/photo";
 
-const MODES = [["bank", "全銀CSV", "入出金明細"], ["manual", "手入力", "出先でメモ"], ["photo", "写メ", "レシート・通帳"], ["card", "クレカ明細", "カード会社CSV"]];
+const MODES = [["bank", "全銀CSV", "入出金明細"], ["manual", "手入力", "出先でメモ"], ["photo", "写メ", "レシート・通帳"], ["card", "クレカ明細", "カード会社CSV"], ["rokid", "Rokid", "グラスで撮影"]];
 const QUICK = [
   { label: "現金で経費を払った", dr: "消耗品費", cr: "現金" },
   { label: "預金から支払った", dr: "支払手数料", cr: "普通預金" },
@@ -15,7 +15,7 @@ const QUICK = [
   { label: "電車・タクシー代", dr: "旅費交通費", cr: "現金" },
 ];
 
-export default function ImportPanel({ data, update, notify, go, ai, setAi }) {
+export default function ImportPanel({ data, update, notify, go, ai, setAi, reload }) {
   const [mode, setMode] = useState("bank");
   return (
     <section>
@@ -29,6 +29,7 @@ export default function ImportPanel({ data, update, notify, go, ai, setAi }) {
       {mode === "bank" && <BankImport data={data} update={update} notify={notify} go={go} />}
       {mode === "manual" && <ManualInput data={data} update={update} notify={notify} />}
       {mode === "photo" && <PhotoImport data={data} update={update} ai={ai} setAi={setAi} />}
+      {mode === "rokid" && <RokidImport data={data} ai={ai} reload={reload} go={go} />}
       {mode === "card" && <Soon title="クレカ明細（準備中）" text="楽天・三井住友・JCB・アメックスのCSVから順に対応します。貸方は未払金で仕訳します。" />}
     </section>
   );
@@ -94,6 +95,51 @@ function PhotoImport({ data, update, ai, setAi }) {
       <ul className="status-list">
         {items.map((i) => <li key={i.id}><img alt="" src={i.url} /><span>{i.name}</span><span className={`st ${i.cls}`}>{i.st}</span></li>)}
       </ul>
+    </div>
+  );
+}
+
+// Rokidグラスで撮ったレシートが、サーバー経由で自動で入ってくる。開いている間は数秒ごとに最新を読み直す
+function RokidImport({ data, ai, reload, go }) {
+  const [last, setLast] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    const tick = async () => { if (await reload()) { if (alive) setLast(new Date()); } };
+    tick();
+    const t = setInterval(tick, 6000);
+    return () => { alive = false; clearInterval(t); };
+  }, [reload]);
+
+  const items = data.journals.filter((j) => j.src === "rokid").sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, 20);
+  const hhmm = (d) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
+
+  return (
+    <div className="panel">
+      <h3>Rokidグラスでレシートを取り込む</h3>
+      <ol className="rokid-flow">
+        <li>スマホの「Rokid取り込み」アプリに、このシステムのID・パスワードでログイン</li>
+        <li>グラスをかけてレシートを見て、アプリの「撮影して登録」を押す</li>
+        <li>読み取った科目と金額がレンズに出て、ここに自動で追加されます</li>
+      </ol>
+      <div className="quota">
+        <span>{ai.enabled ? <>今月の読み取り <b className="num">{ai.used}</b> / {ai.limit} 枚（写メと共通）</> : "読み取りは現在使えません（管理者の設定待ち）"}</span>
+      </div>
+      <p className="rokid-live"><i aria-hidden="true" />この画面を開いている間は自動で更新します{last ? `（最終確認 ${hhmm(last)}）` : ""}</p>
+      {items.length === 0
+        ? <p className="note" style={{ marginTop: 12 }}>まだRokidから取り込んだ仕訳はありません。</p>
+        : (
+          <ul className="rokid-list">
+            {items.map((j) => (
+              <li key={j.id}>
+                <span>{j.date}</span>
+                <span>{j.dr}{j.memo ? `　${j.memo}` : ""}</span>
+                {j.flag && <span className="flag">要確認</span>}
+                <span className="amt">¥{yen(j.amount)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      {items.length > 0 && <button className="btn small" style={{ marginTop: 12 }} onClick={() => go("review")}>確認・訂正で直す</button>}
     </div>
   );
 }

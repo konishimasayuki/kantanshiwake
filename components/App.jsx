@@ -51,12 +51,32 @@ export default function App() {
     });
   }, [flush]);
 
+  // サーバーの最新を読み直す（Rokidグラスから追加された仕訳を反映するため）。未保存の変更があるときは読み直さない
+  const reload = useCallback(async () => {
+    if (pending.current) return false;
+    try {
+      const r = await fetch("/api/data", { cache: "no-store" });
+      if (!r.ok || pending.current) return false;
+      const d = await r.json();
+      setData((prev) => (prev ? { ...prev, settings: { ...makeDefaultSettings(), ...(d.settings || {}) }, journals: d.journals || [] } : prev));
+      if (d.ai) setAi(d.ai);
+      return true;
+    } catch { return false; }
+  }, []);
+
+  // 別のアプリやタブから戻ってきたら最新を読み直す
+  useEffect(() => {
+    const onShow = () => { if (document.visibilityState === "visible") reload(); };
+    document.addEventListener("visibilitychange", onShow);
+    return () => document.removeEventListener("visibilitychange", onShow);
+  }, [reload]);
+
   function notify(msg) { setToast(msg); clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToast(""), 2600); }
   async function logout() { await flush(); await fetch("/api/auth/logout", { method: "POST" }); location.href = "/login"; }
 
   if (!data) return <div className="loading">読み込み中…</div>;
   const flags = data.journals.filter((j) => j.flag).length;
-  const common = { data, update, notify, go: setTab };
+  const common = { data, update, notify, go: setTab, reload };
 
   return (
     <>
