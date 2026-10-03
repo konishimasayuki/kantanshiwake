@@ -77,9 +77,9 @@ function PhotoImport({ data, update, ai, setAi }) {
         <button className="chip" aria-pressed={kind === "passbook"} onClick={() => setKind("passbook")}>通帳</button>
       </div>
       <label className="drop" style={usable ? undefined : { opacity: 0.5, cursor: "not-allowed" }}>
-        <input type="file" accept="image/*" capture="environment" multiple disabled={!usable} onChange={onFiles} />
-        <strong>撮影する / 写真を選ぶ</strong>
-        <small>{kind === "receipt" ? "日付・金額・税率・店名・登録番号を読み取り、経費の仕訳にします。8%と10%は分けて仕訳します" : "記帳ページ1枚ずつ。日付・摘要・金額を読み取り、ルールで科目を判定します。残高のつながりもチェックします"}</small>
+        <input type="file" accept="image/*" multiple disabled={!usable} onChange={onFiles} />
+        <strong>写真を選ぶ</strong>
+        <small>{kind === "receipt" ? "写真フォルダからレシートを選んでください（複数可）。日付・金額・税率・店名・登録番号を読み取り、経費の仕訳にします。8%と10%は分けて仕訳します" : "記帳ページの写真を選んでください（複数可）。日付・摘要・金額を読み取り、ルールで科目を判定します。残高のつながりもチェックします"}</small>
       </label>
       {kind === "receipt" && (
         <div className="row2" style={{ marginTop: 12 }}>

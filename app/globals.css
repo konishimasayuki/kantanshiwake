@@ -136,3 +136,14 @@ details.set .inner{padding:0 16px 16px}
 .adm-table td,.adm-table th{white-space:nowrap}
 .adm-table .acts{display:flex;gap:4px;flex-wrap:wrap}
 .toggle{display:flex;gap:8px;align-items:center;font-size:14px;margin-bottom:12px}
+
+.top-in .btn,.top-in select{white-space:nowrap;flex:none}
+nav.steps button{white-space:nowrap}
+@media (max-width:480px){
+  .top-in{gap:6px;padding:8px 12px}
+  .top-in .name{font-size:15px}
+  .save{display:none}
+  nav.steps{padding:0 12px 8px;gap:4px}
+  nav.steps button{font-size:13px;gap:4px;padding:6px 4px}
+  nav.steps button .n{width:18px;height:18px;font-size:11px}
+}
