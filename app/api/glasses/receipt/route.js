@@ -83,6 +83,7 @@ export async function POST(req) {
     total,
     count: made.length,
     flagged: made.filter((j) => j.flag).length,
+    reason: made.find((j) => j.flag)?.note?.split("／").slice(1).join("／") || "",
     used: next.count, limit,
   });
 }
