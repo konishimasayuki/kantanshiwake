@@ -69,6 +69,21 @@ export async function POST(req) {
 
   // 最新の保存内容に追記する（Web画面の未保存の変更とは別に、サーバー上の最新に足す）
   const latest = (await r.get(K.journals(user.id))) || stored || [];
+
+  // 二重登録を防ぐ：5分以内にRokidから、同じ日付・同じ合計・同じ店の仕訳が入っていれば保存しない
+  const total0 = made.reduce((t, j) => t + j.amount, 0);
+  const vendorKey = String(result.vendor || "").replace(/\s/g, "").slice(0, 6);
+  const recent = latest.filter((j) => j.src === "rokid" && at - (j.at || 0) < 5 * 60 * 1000);
+  const groups = {};
+  recent.forEach((j) => { const k = j.at + "|" + j.date; (groups[k] = groups[k] || []).push(j); });
+  const dup = Object.values(groups).some((g) =>
+    g[0].date === made[0].date &&
+    g.reduce((t, j) => t + j.amount, 0) === total0 &&
+    (!vendorKey || String(g[0].memo || "").replace(/\s/g, "").startsWith(vendorKey))
+  );
+  if (dup) {
+    return NextResponse.json({ ok: true, duplicate: true, date: made[0].date, vendor: result.vendor || "", account: made[0].dr, total: total0, count: 0, flagged: 0, used: next.count, limit });
+  }
   const journals = [...latest, ...made];
   if (JSON.stringify(journals).length > MAX_BYTES) return NextResponse.json({ error: "保存できる量を超えました。書き出し済みの仕訳を削除してください", used: next.count, limit }, { status: 413 });
   await r.set(K.journals(user.id), journals);
