@@ -70,6 +70,22 @@ export async function POST(req) {
   // 最新の保存内容に追記する（Web画面の未保存の変更とは別に、サーバー上の最新に足す）
   const latest = (await r.get(K.journals(user.id))) || stored || [];
 
+  // 二重登録を防ぐ：3分以内に、同じ日付・同じ合計のRokid取り込みがあれば保存しない
+  const total0 = made.reduce((t, j) => t + j.amount, 0);
+  const recent = {};
+  for (const j of latest) {
+    if (j.src !== "rokid" || !j.at || at - j.at > 180000) continue;
+    const g = (recent[j.at] = recent[j.at] || { sum: 0, date: j.date });
+    g.sum += j.amount;
+  }
+  if (Object.values(recent).some((g) => g.sum === total0 && g.date === made[0].date)) {
+    return NextResponse.json({
+      ok: true, duplicate: true,
+      date: made[0].date, vendor: result.vendor || "", account: made[0].dr, payment: made[0].cr,
+      total: total0, count: 0, flagged: 0, reason: "", used: next.count, limit,
+    });
+  }
+
   // 二重登録を防ぐ：5分以内にRokidから、同じ日付・同じ合計・同じ店の仕訳が入っていれば保存しない
   const total0 = made.reduce((t, j) => t + j.amount, 0);
   const vendorKey = String(result.vendor || "").replace(/\s/g, "").slice(0, 6);
